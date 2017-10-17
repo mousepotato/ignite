@@ -30,6 +30,7 @@ import org.apache.ignite.internal.processors.cache.persistence.tree.io.PageIO;
 import org.apache.ignite.internal.processors.query.h2.H2Cursor;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2IndexBase;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2Row;
+import org.apache.ignite.internal.processors.query.h2.opt.GridH2SearchRow;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2Table;
 import org.apache.ignite.internal.util.IgniteTree;
 import org.apache.ignite.internal.util.lang.GridCursor;
@@ -118,7 +119,8 @@ public class H2TreeIndex extends GridH2IndexBase {
                     page.isAllocated(),
                     cols,
                     inlineIdxs,
-                    computeInlineSize(inlineIdxs, inlineSize)) {
+                    computeInlineSize(inlineIdxs, inlineSize),
+                    cctx.mvccEnabled()) {
                     @Override public int compareValues(Value v1, Value v2) {
                         return v1 == v2 ? 0 : table.compareTypeSafe(v1, v2);
                     }
@@ -165,6 +167,9 @@ public class H2TreeIndex extends GridH2IndexBase {
     /** {@inheritDoc} */
     @Override public Cursor find(Session ses, SearchRow lower, SearchRow upper) {
         try {
+            assert lower == null || lower instanceof GridH2SearchRow : lower;
+            assert upper == null || upper instanceof GridH2SearchRow : upper;
+
             IndexingQueryFilter f = threadLocalFilter();
             IndexingQueryCacheFilter p = null;
 
@@ -178,7 +183,7 @@ public class H2TreeIndex extends GridH2IndexBase {
 
             H2Tree tree = treeForRead(seg);
 
-            return new H2Cursor(tree.find(lower, upper), p);
+            return new H2Cursor(tree.find((GridH2SearchRow)lower, (GridH2SearchRow)upper), p);
         }
         catch (IgniteCheckedException e) {
             throw DbException.convert(e);
@@ -205,7 +210,7 @@ public class H2TreeIndex extends GridH2IndexBase {
     }
 
     /** {@inheritDoc} */
-    @Override public GridH2Row remove(SearchRow row) {
+    @Override public boolean putx(GridH2Row row) {
         try {
             InlineIndexHelper.setCurrentInlineIndexes(inlineIdxs);
 
@@ -213,7 +218,28 @@ public class H2TreeIndex extends GridH2IndexBase {
 
             H2Tree tree = treeForRead(seg);
 
-            return tree.remove(row);
+            return tree.putx(row);
+        }
+        catch (IgniteCheckedException e) {
+            throw DbException.convert(e);
+        }
+        finally {
+            InlineIndexHelper.clearCurrentInlineIndexes();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public GridH2Row remove(SearchRow row) {
+        assert row instanceof GridH2SearchRow : row;
+
+        try {
+            InlineIndexHelper.setCurrentInlineIndexes(inlineIdxs);
+
+            int seg = segmentForRow(row);
+
+            H2Tree tree = treeForRead(seg);
+
+            return tree.remove((GridH2SearchRow)row);
         }
         catch (IgniteCheckedException e) {
             throw DbException.convert(e);
@@ -225,6 +251,8 @@ public class H2TreeIndex extends GridH2IndexBase {
 
     /** {@inheritDoc} */
     @Override public void removex(SearchRow row) {
+        assert row instanceof GridH2SearchRow : row;
+
         try {
             InlineIndexHelper.setCurrentInlineIndexes(inlineIdxs);
 
@@ -232,7 +260,7 @@ public class H2TreeIndex extends GridH2IndexBase {
 
             H2Tree tree = treeForRead(seg);
 
-            tree.removex(row);
+            tree.removex((GridH2SearchRow)row);
         }
         catch (IgniteCheckedException e) {
             throw DbException.convert(e);

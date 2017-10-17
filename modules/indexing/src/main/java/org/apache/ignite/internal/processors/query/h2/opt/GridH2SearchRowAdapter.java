@@ -25,7 +25,7 @@ import org.h2.value.Value;
 /**
  * Dummy H2 search row adadpter.
  */
-public abstract class GridH2SearchRowAdapter implements Row {
+public abstract class GridH2SearchRowAdapter implements GridH2SearchRow {
     /** {@inheritDoc} */
     @Override public void setKeyAndVersion(SearchRow old) {
         throw new UnsupportedOperationException();

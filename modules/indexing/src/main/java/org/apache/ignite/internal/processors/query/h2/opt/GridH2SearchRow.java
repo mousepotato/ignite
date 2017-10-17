@@ -15,23 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.internal.processors.query.h2.database.io;
+package org.apache.ignite.internal.processors.query.h2.opt;
 
-import org.apache.ignite.internal.processors.cache.persistence.tree.io.IOVersions;
+import org.h2.result.Row;
 
 /**
- * Leaf page for H2 row references.
+ *
  */
-public class H2LeafIO extends AbstractH2LeafIO {
-    /** */
-    public static final IOVersions<H2LeafIO> VERSIONS = new IOVersions<>(
-        new H2LeafIO(1)
-    );
+public interface GridH2SearchRow extends Row {
+    /**
+     * @return Mvcc coordinator version.
+     */
+    public long mvccCoordinatorVersion();
 
     /**
-     * @param ver Page format version.
+     * @return Mvcc counter.
      */
-    private H2LeafIO(int ver) {
-        super(T_H2_REF_LEAF, ver, 8);
-    }
+    public long mvccCounter();
 }

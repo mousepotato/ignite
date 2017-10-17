@@ -30,14 +30,19 @@ import org.apache.ignite.internal.processors.cache.persistence.tree.reuse.ReuseL
 import org.apache.ignite.internal.processors.query.h2.database.io.H2ExtrasInnerIO;
 import org.apache.ignite.internal.processors.query.h2.database.io.H2ExtrasLeafIO;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2Row;
+import org.apache.ignite.internal.processors.query.h2.opt.GridH2SearchRow;
+import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.h2.result.SearchRow;
 import org.h2.table.IndexColumn;
 import org.h2.value.Value;
 
+import static org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor.COUNTER_NA;
+import static org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor.unmaskCoordinatorVersion;
+
 /**
  */
-public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
+public abstract class H2Tree extends BPlusTree<GridH2SearchRow, GridH2Row> {
     /** */
     private final H2RowFactory rowStore;
 
@@ -59,6 +64,9 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
             return compareValues(o1, o2);
         }
     };
+
+    /** */
+    private final boolean mvccEnabled;
 
     /**
      * @param name Tree name.
@@ -83,7 +91,8 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
         boolean initNew,
         IndexColumn[] cols,
         List<InlineIndexHelper> inlineIdxs,
-        int inlineSize
+        int inlineSize,
+        boolean mvccEnabled
     ) throws IgniteCheckedException {
         super(name, grpId, pageMem, wal, globalRmvId, metaPageId, reuseList);
 
@@ -93,6 +102,7 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
         }
 
         this.inlineSize = inlineSize;
+        this.mvccEnabled = mvccEnabled;
 
         assert rowStore != null;
 
@@ -105,7 +115,7 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
         for (int i = 0; i < cols.length; i++)
             columnIds[i] = cols[i].column.getColumnId();
 
-        setIos(H2ExtrasInnerIO.getVersions(inlineSize), H2ExtrasLeafIO.getVersions(inlineSize));
+        setIos(H2ExtrasInnerIO.getVersions(inlineSize, mvccEnabled), H2ExtrasLeafIO.getVersions(inlineSize, mvccEnabled));
 
         initTree(initNew, inlineSize);
     }
@@ -118,7 +128,7 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
     }
 
     /** {@inheritDoc} */
-    @Override protected GridH2Row getRow(BPlusIO<SearchRow> io, long pageAddr, int idx, Object ignore)
+    @Override protected GridH2Row getRow(BPlusIO<GridH2SearchRow> io, long pageAddr, int idx, Object ignore)
         throws IgniteCheckedException {
         return (GridH2Row)io.getLookupRow(this, pageAddr, idx);
     }
@@ -126,7 +136,7 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
     /**
      * @return Inline size.
      */
-    public int inlineSize() {
+    private int inlineSize() {
         return inlineSize;
     }
 
@@ -159,8 +169,8 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
 
     /** {@inheritDoc} */
     @SuppressWarnings("ForLoopReplaceableByForEach")
-    @Override protected int compare(BPlusIO<SearchRow> io, long pageAddr, int idx,
-        SearchRow row) throws IgniteCheckedException {
+    @Override protected int compare(BPlusIO<GridH2SearchRow> io, long pageAddr, int idx,
+        GridH2SearchRow row) throws IgniteCheckedException {
         if (inlineSize() == 0)
             return compareRows(getRow(io, pageAddr, idx), row);
         else {
@@ -204,6 +214,7 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
                 int idx0 = col.column.getColumnId();
 
                 Value v2 = row.getValue(idx0);
+
                 if (v2 == null) {
                     // Can't compare further.
                     return 0;
@@ -212,6 +223,7 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
                 Value v1 = rowData.getValue(idx0);
 
                 int c = compareValues(v1, v2);
+
                 if (c != 0)
                     return InlineIndexHelper.fixSort(c, col.sortType);
             }
@@ -227,25 +239,56 @@ public abstract class H2Tree extends BPlusTree<SearchRow, GridH2Row> {
      * @param r2 Row 2.
      * @return Compare result.
      */
-    private int compareRows(GridH2Row r1, SearchRow r2) {
+    private int compareRows(GridH2Row r1, GridH2SearchRow r2) {
         if (r1 == r2)
             return 0;
 
         for (int i = 0, len = cols.length; i < len; i++) {
             int idx = columnIds[i];
+
             Value v1 = r1.getValue(idx);
             Value v2 = r2.getValue(idx);
+
             if (v1 == null || v2 == null) {
-                // can't compare further
+                // Can't compare further.
                 return 0;
             }
+
             int c = compareValues(v1, v2);
+
             if (c != 0)
                 return InlineIndexHelper.fixSort(c, cols[i].sortType);
         }
+
+        if (mvccEnabled) {
+            long crdVer1 = r1.mvccCoordinatorVersion();
+            long crdVer2 = r2.mvccCoordinatorVersion();
+
+            assert crdVer1 != 0 : r1;
+            assert crdVer2 != 0 : r2;
+
+            int c = Long.compare(unmaskCoordinatorVersion(crdVer1), unmaskCoordinatorVersion(crdVer2));
+
+            if (c != 0)
+                return c;
+
+            assert r1.mvccCounter() != COUNTER_NA : r1;
+            assert r2.mvccCounter() != COUNTER_NA : r2;
+
+            c = Long.compare(r1.mvccCounter(), r2.mvccCounter());
+
+            if (c != 0)
+                return c;
+        }
+
         return 0;
     }
 
     /** Compares two Values. */
     public abstract int compareValues(Value v1, Value v2);
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return S.toString(H2Tree.class, this, "super", super.toString());
+    }
 }

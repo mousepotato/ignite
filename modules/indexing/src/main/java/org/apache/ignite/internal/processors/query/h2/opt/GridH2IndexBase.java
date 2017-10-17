@@ -200,6 +200,12 @@ public abstract class GridH2IndexBase extends BaseIndex {
     public abstract GridH2Row put(GridH2Row row);
 
     /**
+     * @param row Row.
+     * @return {@code True} if replaced existing row.
+     */
+    public abstract boolean putx(GridH2Row row);
+
+    /**
      * Remove row from index.
      *
      * @param row Row.

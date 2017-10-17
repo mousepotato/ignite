@@ -88,12 +88,12 @@ public abstract class GridH2Row extends GridH2SearchRowAdapter implements CacheD
 
     /** {@inheritDoc} */
     @Override public long mvccCoordinatorVersion() {
-        throw new UnsupportedOperationException();
+        return row.mvccCoordinatorVersion();
     }
 
     /** {@inheritDoc} */
     @Override public long mvccCounter() {
-        throw new UnsupportedOperationException();
+        return row.mvccCounter();
     }
 
     /** {@inheritDoc} */

@@ -20,18 +20,23 @@ package org.apache.ignite.internal.processors.query.h2.database.io;
 import org.apache.ignite.internal.processors.cache.persistence.tree.io.IOVersions;
 
 /**
- * Leaf page for H2 row references.
+ * Inner page for H2 row references.
  */
-public class H2LeafIO extends AbstractH2LeafIO {
+public class H2MvccInnerIO extends AbstractH2InnerIO {
     /** */
-    public static final IOVersions<H2LeafIO> VERSIONS = new IOVersions<>(
-        new H2LeafIO(1)
+    public static final IOVersions<H2MvccInnerIO> VERSIONS = new IOVersions<>(
+        new H2MvccInnerIO(1)
     );
 
     /**
      * @param ver Page format version.
      */
-    private H2LeafIO(int ver) {
-        super(T_H2_REF_LEAF, ver, 8);
+    private H2MvccInnerIO(int ver) {
+        super(T_H2_MVCC_REF_INNER, ver, 24);
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean storeMvccInfo() {
+        return true;
     }
 }

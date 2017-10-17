@@ -148,6 +148,18 @@ public class CacheCoordinatorsProcessor extends GridProcessorAdapter {
     }
 
     /**
+     * @param crdVer Mvcc coordinator version.
+     * @param cntr Counter.
+     * @return Always {@code true}.
+     */
+    public static boolean assertMvccVersionValid(long crdVer, long cntr) {
+        assert unmaskCoordinatorVersion(crdVer) > 0;
+        assert cntr != COUNTER_NA;
+
+        return true;
+    }
+
+    /**
      * @param crdVer Coordinator version.
      * @return Coordinator version with removed value flag.
      */

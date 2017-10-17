@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteInterruptedException;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
+import org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.cache.query.QueryTable;
 import org.apache.ignite.internal.processors.query.IgniteSQLException;
@@ -443,6 +444,8 @@ public class GridH2Table extends TableBase {
      */
     @SuppressWarnings("LockAcquiredButNotSafelyReleased")
     private boolean doUpdate(final GridH2Row row, boolean del) throws IgniteCheckedException {
+        assert !cctx.mvccEnabled() || row.mvccCounter() != CacheCoordinatorsProcessor.COUNTER_NA : row;
+
         // Here we assume that each key can't be updated concurrently and case when different indexes
         // getting updated from different threads with different rows with the same key is impossible.
         lock(false);
@@ -455,10 +458,22 @@ public class GridH2Table extends TableBase {
             if (!del) {
                 assert rowFactory == null || row.link() != 0 : row;
 
-                GridH2Row old = pk.put(row); // Put to PK.
+                GridH2Row old;
 
-                if (old == null)
-                    size.increment();
+                // Put to PK.
+                if (cctx.mvccEnabled()) {
+                    boolean replaced = pk.putx(row);
+
+                    assert !replaced;
+
+                    old = null;
+                }
+                else {
+                    old = pk.put(row);
+
+                    if (old == null)
+                        size.increment();
+                }
 
                 int len = idxs.size();
 

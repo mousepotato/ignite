@@ -88,6 +88,12 @@ public abstract class PageIO {
     /** */
     private static IOVersions<? extends BPlusLeafIO<?>> h2LeafIOs;
 
+    /** */
+    private static IOVersions<? extends BPlusInnerIO<?>> h2MvccInnerIOs;
+
+    /** */
+    private static IOVersions<? extends BPlusLeafIO<?>> h2MvccLeafIOs;
+
     /** Maximum payload size. */
     public static final short MAX_PAYLOAD_SIZE = 2048;
 
@@ -200,6 +206,12 @@ public abstract class PageIO {
 
     /** */
     public static final short T_DATA_REF_MVCC_LEAF = 22;
+
+    /** */
+    public static final short T_H2_MVCC_REF_LEAF = 23;
+
+    /** */
+    public static final short T_H2_MVCC_REF_INNER = 24;
 
     /** */
     private final int ver;
@@ -334,13 +346,19 @@ public abstract class PageIO {
      *
      * @param innerIOs Inner IO versions.
      * @param leafIOs Leaf IO versions.
+     * @param mvccInnerIOs Inner IO versions with mvcc enabled.
+     * @param mvccLeafIOs Leaf IO versions with mvcc enabled.
      */
     public static void registerH2(
         IOVersions<? extends BPlusInnerIO<?>> innerIOs,
-        IOVersions<? extends BPlusLeafIO<?>> leafIOs
+        IOVersions<? extends BPlusLeafIO<?>> leafIOs,
+        IOVersions<? extends BPlusInnerIO<?>> mvccInnerIOs,
+        IOVersions<? extends BPlusLeafIO<?>> mvccLeafIOs
     ) {
         h2InnerIOs = innerIOs;
         h2LeafIOs = leafIOs;
+        h2MvccInnerIOs = mvccInnerIOs;
+        h2MvccLeafIOs = mvccLeafIOs;
     }
 
     /**
@@ -512,6 +530,18 @@ public abstract class PageIO {
                     break;
 
                 return (Q)h2LeafIOs.forVersion(ver);
+
+            case T_H2_MVCC_REF_INNER:
+                if (h2MvccInnerIOs == null)
+                    break;
+
+                return (Q)h2MvccInnerIOs.forVersion(ver);
+
+            case T_H2_MVCC_REF_LEAF:
+                if (h2MvccLeafIOs == null)
+                    break;
+
+                return (Q)h2MvccLeafIOs.forVersion(ver);
 
             case T_DATA_REF_INNER:
                 return (Q)DataInnerIO.VERSIONS.forVersion(ver);

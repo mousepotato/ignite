@@ -98,6 +98,8 @@ import org.apache.ignite.internal.processors.query.h2.database.io.H2ExtrasInnerI
 import org.apache.ignite.internal.processors.query.h2.database.io.H2ExtrasLeafIO;
 import org.apache.ignite.internal.processors.query.h2.database.io.H2InnerIO;
 import org.apache.ignite.internal.processors.query.h2.database.io.H2LeafIO;
+import org.apache.ignite.internal.processors.query.h2.database.io.H2MvccInnerIO;
+import org.apache.ignite.internal.processors.query.h2.database.io.H2MvccLeafIO;
 import org.apache.ignite.internal.processors.query.h2.ddl.DdlStatementsProcessor;
 import org.apache.ignite.internal.processors.query.h2.opt.DistributedJoinMode;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2DefaultTableEngine;
@@ -183,7 +185,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
      * Register IO for indexes.
      */
     static {
-        PageIO.registerH2(H2InnerIO.VERSIONS, H2LeafIO.VERSIONS);
+        PageIO.registerH2(H2InnerIO.VERSIONS, H2LeafIO.VERSIONS, H2MvccInnerIO.VERSIONS, H2MvccLeafIO.VERSIONS);
         H2ExtrasInnerIO.register();
         H2ExtrasLeafIO.register();
 

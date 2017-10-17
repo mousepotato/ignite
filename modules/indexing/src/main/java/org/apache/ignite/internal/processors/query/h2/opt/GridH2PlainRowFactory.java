@@ -92,6 +92,16 @@ public class GridH2PlainRowFactory extends RowFactory {
         }
 
         /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return 0; // TODO IGNITE-3478
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return 0; // TODO IGNITE-3478
+        }
+
+        /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(RowKey.class, this);
         }
@@ -138,6 +148,16 @@ public class GridH2PlainRowFactory extends RowFactory {
         }
 
         /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return 0; // TODO IGNITE-3478
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return 0; // TODO IGNITE-3478
+        }
+
+        /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(RowPair.class, this);
         }
@@ -171,6 +191,16 @@ public class GridH2PlainRowFactory extends RowFactory {
         /** {@inheritDoc} */
         @Override public void setValue(int idx, Value v) {
             vals[idx] = v;
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return 0; // TODO IGNITE-3478
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return 0; // TODO IGNITE-3478
         }
 
         /** {@inheritDoc} */

@@ -54,10 +54,11 @@ public class CacheMvccSqlQueriesTest extends CacheMvccAbstractTest {
 
         IgniteCache<Integer, MvccTestSqlIndexValue> cache =  (IgniteCache)srv0.createCache(
             cacheConfiguration(PARTITIONED, FULL_SYNC, 0, DFLT_PARTITION_COUNT).
-            setIndexedTypes(Integer.class, MvccTestSqlIndexValue.class));
+            setIndexedTypes(Integer.class, MvccTestSqlIndexValue.class).
+            setSqlIndexMaxInlineSize(0));
 
         cache.put(1, new MvccTestSqlIndexValue(1));
-        cache.put(1, new MvccTestSqlIndexValue(2));
+        //cache.put(1, new MvccTestSqlIndexValue(2));
 
         SqlQuery<Integer, MvccTestSqlIndexValue> qry =
             new SqlQuery<>(MvccTestSqlIndexValue.class, "_key >= 0");

@@ -284,6 +284,16 @@ public class GridH2MetaTable extends TableBase {
                     throw new IllegalStateException("Index: " + idx);
             }
         }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return 0; // TODO IGNITE-3478
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return 0; // TODO IGNITE-3478
+        }
     }
 
     /**
