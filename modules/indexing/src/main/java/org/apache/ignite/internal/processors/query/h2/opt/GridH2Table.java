@@ -27,11 +27,9 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteInterruptedException;
-import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
-import org.apache.ignite.internal.processors.cache.KeyCacheObject;
+import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.cache.query.QueryTable;
-import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
 import org.apache.ignite.internal.processors.query.IgniteSQLException;
 import org.apache.ignite.internal.processors.query.QueryField;
 import org.apache.ignite.internal.processors.query.h2.database.H2RowFactory;
@@ -389,37 +387,29 @@ public class GridH2Table extends TableBase {
      * Updates table for given key. If value is null then row with given key will be removed from table,
      * otherwise value and expiration time will be updated or new row will be added.
      *
-     * @param key Key.
-     * @param val Value.
-     * @param expirationTime Expiration time.
+     * @param row Row.
      * @param rmv If {@code true} then remove, else update row.
      * @return {@code true} If operation succeeded.
      * @throws IgniteCheckedException If failed.
      */
-    public boolean update(KeyCacheObject key,
-        int partId,
-        CacheObject val,
-        GridCacheVersion ver,
-        long expirationTime,
-        boolean rmv,
-        long link)
+    public boolean update(CacheDataRow row, boolean rmv)
         throws IgniteCheckedException {
         assert desc != null;
 
-        GridH2Row row = desc.createRow(key, partId, val, ver, expirationTime, link);
+        GridH2Row h2Row = desc.createRow(row);
 
         if (rmv)
-            return doUpdate(row, true);
+            return doUpdate(h2Row, true);
         else {
-            GridH2KeyValueRowOnheap row0 = (GridH2KeyValueRowOnheap)row;
+            GridH2KeyValueRowOnheap h2Row0 = (GridH2KeyValueRowOnheap)h2Row;
 
-            row0.prepareValuesCache();
+            h2Row0.prepareValuesCache();
 
             try {
-                return doUpdate(row, false);
+                return doUpdate(h2Row0, false);
             }
             finally {
-                row0.clearValuesCache();
+                h2Row0.clearValuesCache();
             }
         }
     }
