@@ -1545,15 +1545,15 @@ public class IgniteCacheOffheapManagerImpl implements IgniteCacheOffheapManager 
 
                 cleanup(updateRow.cleanupRows(), false);
 
-//                CacheDataRow oldRow = updateRow.oldRow();
-//
-//                if (oldRow != null)
-//                    oldRow.key(key);
-//
-//                GridCacheQueryManager qryMgr = cctx.queries();
-//
-//                if (qryMgr.enabled())
-//                    qryMgr.store(updateRow, oldRow);
+                CacheDataRow oldRow = updateRow.oldRow();
+
+                if (oldRow != null)
+                    oldRow.key(key);
+
+                GridCacheQueryManager qryMgr = cctx.queries();
+
+                if (qryMgr.enabled())
+                    qryMgr.store(updateRow, oldRow);
 
                 return updateRow.activeTransactions();
             }
