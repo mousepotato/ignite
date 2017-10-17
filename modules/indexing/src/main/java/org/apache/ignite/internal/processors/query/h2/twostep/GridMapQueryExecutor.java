@@ -54,6 +54,7 @@ import org.apache.ignite.internal.processors.cache.GridCacheSharedContext;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtLocalPartition;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtPartitionsReservation;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridReservable;
+import org.apache.ignite.internal.processors.cache.mvcc.MvccCoordinatorVersion;
 import org.apache.ignite.internal.processors.cache.query.CacheQueryType;
 import org.apache.ignite.internal.processors.cache.query.GridCacheQueryMarshallable;
 import org.apache.ignite.internal.processors.cache.query.GridCacheSqlQuery;
@@ -482,7 +483,8 @@ public class GridMapQueryExecutor {
                     false, // Replicated is always false here (see condition above).
                     req.timeout(),
                     params,
-                    true); // Lazy = true.
+                    true,
+                    req.mvccVersion()); // Lazy = true.
             }
             else {
                 ctx.closure().callLocal(
@@ -504,7 +506,8 @@ public class GridMapQueryExecutor {
                                 false,
                                 req.timeout(),
                                 params,
-                                false); // Lazy = false.
+                                false,
+                                req.mvccVersion()); // Lazy = false.
 
                             return null;
                         }
@@ -528,7 +531,8 @@ public class GridMapQueryExecutor {
             replicated,
             req.timeout(),
             params,
-            lazy);
+            lazy,
+            req.mvccVersion());
     }
 
     /**
@@ -561,7 +565,8 @@ public class GridMapQueryExecutor {
         final boolean replicated,
         final int timeout,
         final Object[] params,
-        boolean lazy
+        boolean lazy,
+        @Nullable final MvccCoordinatorVersion mvccVer
     ) {
         if (lazy && MapQueryLazyWorker.currentWorker() == null) {
             // Lazy queries must be re-submitted to dedicated workers.
@@ -570,8 +575,24 @@ public class GridMapQueryExecutor {
 
             worker.submit(new Runnable() {
                 @Override public void run() {
-                    onQueryRequest0(node, reqId, segmentId, schemaName, qrys, cacheIds, topVer, partsMap, parts,
-                        pageSize, distributedJoinMode, enforceJoinOrder, replicated, timeout, params, true);
+                    onQueryRequest0(
+                        node,
+                        reqId,
+                        segmentId,
+                        schemaName,
+                        qrys,
+                        cacheIds,
+                        topVer,
+                        partsMap,
+                        parts,
+                        pageSize,
+                        distributedJoinMode,
+                        enforceJoinOrder,
+                        replicated,
+                        timeout,
+                        params,
+                        true,
+                        mvccVer);
                 }
             });
 
@@ -637,7 +658,8 @@ public class GridMapQueryExecutor {
                 .distributedJoinMode(distributedJoinMode)
                 .pageSize(pageSize)
                 .topologyVersion(topVer)
-                .reservations(reserved);
+                .reservations(reserved)
+                .mvccVersion(mvccVer);
 
             Connection conn = h2.connectionForSchema(schemaName);
 

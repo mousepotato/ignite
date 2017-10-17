@@ -72,7 +72,6 @@ import org.apache.ignite.internal.processors.cache.query.CacheQueryFuture;
 import org.apache.ignite.internal.processors.cache.query.CacheQueryType;
 import org.apache.ignite.internal.processors.cache.query.GridCacheQueryType;
 import org.apache.ignite.internal.processors.cache.query.IgniteQueryErrorCode;
-import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
 import org.apache.ignite.internal.processors.query.property.QueryBinaryProperty;
 import org.apache.ignite.internal.processors.query.schema.SchemaIndexCacheVisitor;
 import org.apache.ignite.internal.processors.query.schema.SchemaIndexCacheVisitorImpl;
@@ -1868,7 +1867,7 @@ public class GridQueryProcessor extends GridProcessorAdapter {
 
         try {
             final String schemaName = qry.getSchema() != null ? qry.getSchema() : idx.schema(cctx.name());
-            final int mainCacheId = CU.cacheId(cctx.name());
+            final int mainCacheId = cctx.cacheId();
 
             IgniteOutClosureX<FieldsQueryCursor<List<?>>> clo;
 
@@ -2054,7 +2053,7 @@ public class GridQueryProcessor extends GridProcessorAdapter {
 
         try {
             final String schemaName = idx.schema(cctx.name());
-            final int mainCacheId = CU.cacheId(cctx.name());
+            final int mainCacheId = cctx.cacheId();
 
             return executeQuery(GridCacheQueryType.SQL, qry.getSql(), cctx,
                 new IgniteOutClosureX<QueryCursor<Cache.Entry<K, V>>>() {
@@ -2083,7 +2082,7 @@ public class GridQueryProcessor extends GridProcessorAdapter {
             throw new IllegalStateException("Failed to execute query (grid is stopping).");
 
         final String schemaName = idx.schema(cctx.name());
-        final int mainCacheId = CU.cacheId(cctx.name());
+        final int mainCacheId = cctx.cacheId();
 
         try {
             return executeQuery(GridCacheQueryType.SQL, qry.getSql(), cctx,

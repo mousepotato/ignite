@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.query.h2.opt;
 
+import org.apache.ignite.internal.processors.cache.mvcc.MvccCoordinatorVersion;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.h2.result.Row;
@@ -36,41 +37,48 @@ public class GridH2PlainRowFactory extends RowFactory {
     }
 
     /**
+     * TODO IGNITE-3478: review usages.
+     *
+     * @param ctx Query context.
      * @param data Values.
      * @return Row.
      */
-    public static Row create(Value... data) {
+    public static Row create(GridH2QueryContext ctx, Value... data) {
+        MvccCoordinatorVersion mvccVer = ctx != null ? ctx.mvccVersion() : null;
+
         switch (data.length) {
             case 0:
                 throw new IllegalStateException("Zero columns row.");
 
             case 1:
-                return new RowKey(data[0]);
+                return mvccVer != null ? new RowKeyMvcc(data[0], mvccVer) : new RowKey(data[0]);
 
             case 2:
-                return new RowPair(data[0], data[1]);
+                return mvccVer != null ? new RowPairMvcc(data[0], data[1], mvccVer) : new RowPair(data[0], data[1]);
 
             default:
-                return new RowSimple(data);
+                return mvccVer != null ? new RowSimpleMvcc(data, mvccVer) : new RowSimple(data);
         }
     }
 
     /** {@inheritDoc} */
     @Override public Row createRow(Value[] data, int memory) {
-        return create(data);
+        GridH2QueryContext ctx = GridH2QueryContext.get();
+
+        return create(ctx, data);
     }
 
     /**
      * Single value row.
      */
-    private static final class RowKey extends GridH2SearchRowAdapter {
+    private static class RowKey extends GridH2SearchRowAdapter {
         /** */
         private Value key;
 
         /**
          * @param key Key.
          */
-        public RowKey(Value key) {
+        RowKey(Value key) {
             this.key = key;
         }
 
@@ -93,12 +101,12 @@ public class GridH2PlainRowFactory extends RowFactory {
 
         /** {@inheritDoc} */
         @Override public long mvccCoordinatorVersion() {
-            return 0; // TODO IGNITE-3478
+            return 0;
         }
 
         /** {@inheritDoc} */
         @Override public long mvccCounter() {
-            return 0; // TODO IGNITE-3478
+            return 0;
         }
 
         /** {@inheritDoc} */
@@ -108,9 +116,44 @@ public class GridH2PlainRowFactory extends RowFactory {
     }
 
     /**
+     * Single value row.
+     */
+    private static final class RowKeyMvcc extends RowKey {
+        /** */
+        private final MvccCoordinatorVersion mvccVer;
+
+        /**
+         * @param key Key.
+         * @param mvccVer Mvcc version.
+         */
+        RowKeyMvcc(Value key, MvccCoordinatorVersion mvccVer) {
+            super(key);
+
+            assert mvccVer != null;
+
+            this.mvccVer = mvccVer;
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return mvccVer.coordinatorVersion();
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return mvccVer.counter();
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(RowKeyMvcc.class, this);
+        }
+    }
+
+    /**
      * Row of two values.
      */
-    private static final class RowPair extends GridH2SearchRowAdapter  {
+    private static class RowPair extends GridH2SearchRowAdapter  {
         /** */
         private Value v1;
 
@@ -149,12 +192,12 @@ public class GridH2PlainRowFactory extends RowFactory {
 
         /** {@inheritDoc} */
         @Override public long mvccCoordinatorVersion() {
-            return 0; // TODO IGNITE-3478
+            return 0;
         }
 
         /** {@inheritDoc} */
         @Override public long mvccCounter() {
-            return 0; // TODO IGNITE-3478
+            return 0;
         }
 
         /** {@inheritDoc} */
@@ -164,9 +207,45 @@ public class GridH2PlainRowFactory extends RowFactory {
     }
 
     /**
+     *
+     */
+    private static final class RowPairMvcc extends RowPair {
+        /** */
+        private final MvccCoordinatorVersion mvccVer;
+
+        /**
+         * @param v1 First value.
+         * @param v2 Second value.
+         * @param mvccVer Mvcc version.
+         */
+        RowPairMvcc(Value v1, Value v2, MvccCoordinatorVersion mvccVer) {
+            super(v1, v2);
+
+            assert mvccVer != null;
+
+            this.mvccVer = mvccVer;
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return mvccVer.coordinatorVersion();
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return mvccVer.counter();
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(RowPairMvcc.class, this);
+        }
+    }
+
+    /**
      * Simple array based row.
      */
-    private static final class RowSimple extends GridH2SearchRowAdapter {
+    private static class RowSimple extends GridH2SearchRowAdapter {
         /** */
         @GridToStringInclude
         private Value[] vals;
@@ -195,17 +274,52 @@ public class GridH2PlainRowFactory extends RowFactory {
 
         /** {@inheritDoc} */
         @Override public long mvccCoordinatorVersion() {
-            return 0; // TODO IGNITE-3478
+            return 0;
         }
 
         /** {@inheritDoc} */
         @Override public long mvccCounter() {
-            return 0; // TODO IGNITE-3478
+            return 0;
         }
 
         /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(RowSimple.class, this);
+        }
+    }
+
+    /**
+     *
+     */
+    private static class RowSimpleMvcc extends RowSimple {
+        /** */
+        private final MvccCoordinatorVersion mvccVer;
+
+        /**
+         * @param vals Values.
+         * @param mvccVer Mvcc version.
+         */
+        RowSimpleMvcc(Value[] vals, MvccCoordinatorVersion mvccVer) {
+            super(vals);
+
+            assert mvccVer != null;
+
+            this.mvccVer = mvccVer;
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCoordinatorVersion() {
+            return mvccVer.coordinatorVersion();
+        }
+
+        /** {@inheritDoc} */
+        @Override public long mvccCounter() {
+            return mvccVer.counter();
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(RowSimpleMvcc.class, this);
         }
     }
 }

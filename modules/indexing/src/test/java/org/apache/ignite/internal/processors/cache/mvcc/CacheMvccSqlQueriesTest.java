@@ -58,10 +58,14 @@ public class CacheMvccSqlQueriesTest extends CacheMvccAbstractTest {
             setSqlIndexMaxInlineSize(0));
 
         cache.put(1, new MvccTestSqlIndexValue(1));
-        //cache.put(1, new MvccTestSqlIndexValue(2));
+        cache.put(1, new MvccTestSqlIndexValue(2));
+
+        cache.put(2, new MvccTestSqlIndexValue(1));
+        cache.put(3, new MvccTestSqlIndexValue(1));
+        cache.put(4, new MvccTestSqlIndexValue(1));
 
         SqlQuery<Integer, MvccTestSqlIndexValue> qry =
-            new SqlQuery<>(MvccTestSqlIndexValue.class, "_key >= 0");
+            new SqlQuery<>(MvccTestSqlIndexValue.class, "_key = 1");
 
         List<IgniteCache.Entry<Integer, MvccTestSqlIndexValue>> res = cache.query(qry).getAll();
 

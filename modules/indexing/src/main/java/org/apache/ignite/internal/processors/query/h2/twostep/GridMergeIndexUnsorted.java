@@ -139,7 +139,7 @@ public final class GridMergeIndexUnsorted extends GridMergeIndex {
             }
 
             @Override public Row next() {
-                return GridH2PlainRowFactory.create(iter.next());
+                return GridH2PlainRowFactory.create(null, iter.next());
             }
 
             @Override public void remove() {

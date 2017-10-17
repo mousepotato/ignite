@@ -368,7 +368,7 @@ public final class GridMergeIndexSorted extends GridMergeIndex {
             if (!iter.hasNext())
                 return false;
 
-            cur = GridH2PlainRowFactory.create(iter.next());
+            cur = GridH2PlainRowFactory.create(null, iter.next());
 
             return true;
         }

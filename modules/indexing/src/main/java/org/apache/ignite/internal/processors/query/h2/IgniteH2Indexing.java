@@ -1587,9 +1587,11 @@ public class IgniteH2Indexing implements GridQueryIndexing {
     }
 
     /**
+     * @param cacheIds Cache IDs.
+     * @param twoStepQry Query.
      * @throws IllegalStateException if segmented indices used with non-segmented indices.
      */
-    private void checkCacheIndexSegmentation(List<Integer> cacheIds) {
+    private void processCaches(List<Integer> cacheIds, GridCacheTwoStepQuery twoStepQry) {
         if (cacheIds.isEmpty())
             return; // Nothing to check
 
@@ -1597,10 +1599,20 @@ public class IgniteH2Indexing implements GridQueryIndexing {
 
         int expectedParallelism = 0;
 
-        for (Integer cacheId : cacheIds) {
+        boolean mvccEnabled = false;
+
+        for (int i = 0; i < cacheIds.size(); i++) {
+            Integer cacheId = cacheIds.get(i);
+
             GridCacheContext cctx = sharedCtx.cacheContext(cacheId);
 
             assert cctx != null;
+
+            if (i == 0)
+                mvccEnabled = cctx.mvccEnabled();
+            else if (cctx.mvccEnabled() != mvccEnabled)
+                throw new IllegalStateException("Using caches with different mvcc settings in same query is " +
+                    "forbidden.");
 
             if (!cctx.isPartitioned())
                 continue;
@@ -1612,6 +1624,8 @@ public class IgniteH2Indexing implements GridQueryIndexing {
                     "forbidden.");
             }
         }
+
+        twoStepQry.mvccEnabled(mvccEnabled);
     }
 
     /**
@@ -2519,7 +2533,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
             //Prohibit usage indices with different numbers of segments in same query.
             List<Integer> cacheIds = new ArrayList<>(caches0);
 
-            checkCacheIndexSegmentation(cacheIds);
+            processCaches(cacheIds, twoStepQry);
 
             return cacheIds;
         }
