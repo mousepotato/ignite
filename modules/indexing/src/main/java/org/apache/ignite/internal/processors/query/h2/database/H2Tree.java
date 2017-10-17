@@ -284,7 +284,11 @@ public abstract class H2Tree extends BPlusTree<GridH2SearchRow, GridH2Row> {
         return 0;
     }
 
-    /** Compares two Values. */
+    /**
+     * @param v1 First value.
+     * @param v2 Second value.
+     * @return Comparison result.
+     */
     public abstract int compareValues(Value v1, Value v2);
 
     /** {@inheritDoc} */
