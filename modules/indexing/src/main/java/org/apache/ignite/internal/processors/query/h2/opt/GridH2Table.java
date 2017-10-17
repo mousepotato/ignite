@@ -551,22 +551,6 @@ public class GridH2Table extends TableBase {
     }
 
     /**
-     * For testing only.
-     *
-     * @return Indexes.
-     */
-    ArrayList<GridH2IndexBase> indexes() {
-        ArrayList<GridH2IndexBase> res = new ArrayList<>(idxs.size() - 2);
-
-        for (int i = pkIndexPos, len = idxs.size(); i < len; i++) {
-            if (idxs.get(i) instanceof GridH2IndexBase)
-                res.add(index(i));
-        }
-
-        return res;
-    }
-
-    /**
      *
      */
     public void markRebuildFromHashInProgress(boolean value) {
