@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
+import org.apache.ignite.internal.processors.cache.mvcc.MvccCoordinatorVersion;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.query.GridQueryProperty;
 import org.apache.ignite.internal.processors.query.GridQueryTypeDescriptor;
@@ -274,20 +275,21 @@ public class GridH2RowDescriptor {
      * Creates new row.
      *
      * @param dataRow Data row.
+     * @param newVer Version of new mvcc value inserted for the same key.
      * @return Row.
      * @throws IgniteCheckedException If failed.
      */
-    public GridH2Row createRow(CacheDataRow dataRow, @Nullable CacheDataRow mvccNewRow) throws IgniteCheckedException {
+    public GridH2Row createRow(CacheDataRow dataRow, @Nullable MvccCoordinatorVersion newVer) throws IgniteCheckedException {
         GridH2Row row;
 
         try {
             if (dataRow.value() == null) { // Only can happen for remove operation, can create simple search row.
-                assert mvccNewRow == null;
+                assert newVer == null;
 
                 row = new GridH2KeyRowOnheap(dataRow, wrap(dataRow.key(), keyType));
             }
             else
-                row = new GridH2KeyValueRowOnheap(this, dataRow, mvccNewRow, keyType, valType);
+                row = new GridH2KeyValueRowOnheap(this, dataRow, newVer, keyType, valType);
         }
         catch (ClassCastException e) {
             throw new IgniteCheckedException("Failed to convert key to SQL type. " +

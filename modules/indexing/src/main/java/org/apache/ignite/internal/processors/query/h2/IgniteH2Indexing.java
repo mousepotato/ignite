@@ -71,6 +71,7 @@ import org.apache.ignite.internal.processors.cache.IgniteCacheOffheapManager;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
 import org.apache.ignite.internal.processors.cache.QueryCursorImpl;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtInvalidPartitionException;
+import org.apache.ignite.internal.processors.cache.mvcc.MvccCoordinatorVersion;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.cache.persistence.tree.io.PageIO;
 import org.apache.ignite.internal.processors.cache.query.CacheQueryPartitionInfo;
@@ -539,7 +540,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
     }
 
     /** {@inheritDoc} */
-    @Override public void store(GridCacheContext cctx, GridQueryTypeDescriptor type, CacheDataRow row, @Nullable CacheDataRow mvccNewRow)
+    @Override public void store(GridCacheContext cctx, GridQueryTypeDescriptor type, CacheDataRow row, @Nullable MvccCoordinatorVersion newVer)
         throws IgniteCheckedException {
         String cacheName = cctx.name();
 
@@ -548,7 +549,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
         if (tbl == null)
             return; // Type was rejected.
 
-        tbl.table().update(row, mvccNewRow, false);
+        tbl.table().update(row, newVer, false);
 
         if (tbl.luceneIndex() != null) {
             long expireTime = row.expireTime();

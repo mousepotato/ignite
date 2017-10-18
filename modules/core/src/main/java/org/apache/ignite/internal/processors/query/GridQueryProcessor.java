@@ -67,6 +67,7 @@ import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.GridCacheSharedContext;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
 import org.apache.ignite.internal.processors.cache.StoredCacheData;
+import org.apache.ignite.internal.processors.cache.mvcc.MvccCoordinatorVersion;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.cache.query.CacheQueryFuture;
 import org.apache.ignite.internal.processors.cache.query.CacheQueryType;
@@ -1696,14 +1697,19 @@ public class GridQueryProcessor extends GridProcessorAdapter {
     /**
      * @param cctx Cache context.
      * @param newRow New row.
+     * @param mvccVer Mvcc version for update.
      * @param prevRow Previous row.
      * @throws IgniteCheckedException In case of error.
      */
     @SuppressWarnings({"unchecked", "ConstantConditions"})
-    public void store(GridCacheContext cctx, CacheDataRow newRow, @Nullable CacheDataRow prevRow)
-        throws IgniteCheckedException {
+    public void store(GridCacheContext cctx,
+        CacheDataRow newRow,
+        @Nullable MvccCoordinatorVersion mvccVer,
+        @Nullable CacheDataRow prevRow) throws IgniteCheckedException
+    {
         assert cctx != null;
         assert newRow != null;
+        assert !cctx.mvccEnabled() || mvccVer != null;
 
         KeyCacheObject key = newRow.key();
 
@@ -1745,7 +1751,7 @@ public class GridQueryProcessor extends GridProcessorAdapter {
                 idx.store(cctx, desc, newRow, null);
 
                 if (prevRow != null)
-                    idx.store(cctx, desc, prevRow, newRow);
+                    idx.store(cctx, desc, prevRow, mvccVer);
             }
             else
                 idx.store(cctx, desc, newRow, null);
@@ -2311,12 +2317,14 @@ public class GridQueryProcessor extends GridProcessorAdapter {
 
     /**
      * @param cctx Cache context.
-     * @param val Row.
+     * @param val Value removed from cache.
+     * @param newVer Mvcc version for remove operation.
      * @throws IgniteCheckedException Thrown in case of any errors.
      */
-    public void remove(GridCacheContext cctx, CacheDataRow val)
+    public void remove(GridCacheContext cctx, CacheDataRow val, @Nullable MvccCoordinatorVersion newVer)
         throws IgniteCheckedException {
         assert val != null;
+        assert !cctx.mvccEnabled() || newVer == null;
 
         if (log.isDebugEnabled())
             log.debug("Remove [cacheName=" + cctx.name() + ", key=" + val.key()+ ", val=" + val.value() + "]");
@@ -2337,7 +2345,14 @@ public class GridQueryProcessor extends GridProcessorAdapter {
             if (desc == null)
                 return;
 
-            idx.remove(cctx, desc, val);
+            if (cctx.mvccEnabled()) {
+                if (newVer != null)
+                    idx.store(cctx, desc, val, newVer); // Set info about more recent version for previous record.
+                else
+                    idx.remove(cctx, desc, val);
+            }
+            else
+                idx.remove(cctx, desc, val);
         }
         finally {
             busyLock.leaveBusy();

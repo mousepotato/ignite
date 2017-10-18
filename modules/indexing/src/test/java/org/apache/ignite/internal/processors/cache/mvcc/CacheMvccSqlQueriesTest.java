@@ -68,9 +68,17 @@ public class CacheMvccSqlQueriesTest extends CacheMvccAbstractTest {
         SqlQuery<Integer, MvccTestSqlIndexValue> qry =
             new SqlQuery<>(MvccTestSqlIndexValue.class, "_key = 1");
 
-        List<IgniteCache.Entry<Integer, MvccTestSqlIndexValue>> res = cache.query(qry).getAll();
+        List<IgniteCache.Entry<Integer, MvccTestSqlIndexValue>> res;
+
+         res = cache.query(qry).getAll();
 
         assertEquals(1, res.size());
+
+        cache.remove(1);
+
+        res = cache.query(qry).getAll();
+
+        assertEquals(0, res.size());
     }
 
     /**

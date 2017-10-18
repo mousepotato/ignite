@@ -29,6 +29,7 @@ import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteInterruptedException;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor;
+import org.apache.ignite.internal.processors.cache.mvcc.MvccCoordinatorVersion;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.cache.query.QueryTable;
 import org.apache.ignite.internal.processors.query.IgniteSQLException;
@@ -389,16 +390,16 @@ public class GridH2Table extends TableBase {
      * otherwise value and expiration time will be updated or new row will be added.
      *
      * @param row Row.
-     * @param mvccNewRow New inserted mvcc row for the same key.
+     * @param newVer Version of new mvcc value inserted for the same key.
      * @param rmv If {@code true} then remove, else update row.
      * @return {@code true} If operation succeeded.
      * @throws IgniteCheckedException If failed.
      */
-    public boolean update(CacheDataRow row, @Nullable CacheDataRow mvccNewRow, boolean rmv)
+    public boolean update(CacheDataRow row, @Nullable MvccCoordinatorVersion newVer, boolean rmv)
         throws IgniteCheckedException {
         assert desc != null;
 
-        GridH2Row h2Row = desc.createRow(row, mvccNewRow);
+        GridH2Row h2Row = desc.createRow(row, newVer);
 
         if (rmv)
             return doUpdate(h2Row, true);
