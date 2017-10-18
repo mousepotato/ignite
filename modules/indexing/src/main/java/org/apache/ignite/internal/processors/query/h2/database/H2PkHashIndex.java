@@ -204,7 +204,7 @@ public class H2PkHashIndex extends GridH2IndexBase {
             try {
                 CacheDataRow dataRow = cursor.get();
 
-                return tbl.rowDescriptor().createRow(dataRow);
+                return tbl.rowDescriptor().createRow(dataRow, null);
             }
             catch (IgniteCheckedException e) {
                 throw DbException.convert(e);

@@ -31,7 +31,8 @@ import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 
 /**
- *
+ * TODO IGNITE-3478: text/spatial indexes with mvcc.
+ * TODO IGNITE-3478: dynamic index create.
  */
 @SuppressWarnings("unchecked")
 public class CacheMvccSqlQueriesTest extends CacheMvccAbstractTest {
@@ -83,7 +84,7 @@ public class CacheMvccSqlQueriesTest extends CacheMvccAbstractTest {
         /**
          * @param idxVal1 Indexed value 1.
          */
-        public MvccTestSqlIndexValue(int idxVal1) {
+        MvccTestSqlIndexValue(int idxVal1) {
             this.idxVal1 = idxVal1;
         }
 

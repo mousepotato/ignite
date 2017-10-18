@@ -19,6 +19,7 @@ package org.apache.ignite.internal.processors.query.h2.opt;
 
 import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
+import org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
 
@@ -99,5 +100,20 @@ public abstract class GridH2Row extends GridH2SearchRowAdapter implements CacheD
     /** {@inheritDoc} */
     @Override public boolean removed() {
         throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean indexSearchRow() {
+        return false;
+    }
+
+    /** {@inheritDoc} */
+    public long newMvccCoordinatorVersion() {
+        return 0;
+    }
+
+    /** {@inheritDoc} */
+    public long newMvccCounter() {
+        return CacheCoordinatorsProcessor.COUNTER_NA;
     }
 }

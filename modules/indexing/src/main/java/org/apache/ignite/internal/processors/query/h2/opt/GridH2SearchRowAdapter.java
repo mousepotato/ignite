@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.query.h2.opt;
 
+import org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor;
 import org.h2.result.Row;
 import org.h2.result.SearchRow;
 import org.h2.store.Data;
@@ -99,5 +100,15 @@ public abstract class GridH2SearchRowAdapter implements GridH2SearchRow {
     /** {@inheritDoc} */
     @Override public Value[] getValueList() {
         throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override public long mvccCoordinatorVersion() {
+        return 0;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long mvccCounter() {
+        return CacheCoordinatorsProcessor.COUNTER_NA;
     }
 }

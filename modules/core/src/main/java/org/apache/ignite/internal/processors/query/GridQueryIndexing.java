@@ -217,10 +217,13 @@ public interface GridQueryIndexing {
      * @param cctx Cache context.
      * @param type Type descriptor.
      * @param row New row.
+     * @param mvccNewRow New inserted mvcc row for the same key.
      * @throws IgniteCheckedException If failed.
      */
-    public void store(GridCacheContext cctx, GridQueryTypeDescriptor type, CacheDataRow row)
-        throws IgniteCheckedException;
+    public void store(GridCacheContext cctx,
+        GridQueryTypeDescriptor type,
+        CacheDataRow row,
+        @Nullable CacheDataRow mvccNewRow) throws IgniteCheckedException;
 
     /**
      * Removes index entry by key.

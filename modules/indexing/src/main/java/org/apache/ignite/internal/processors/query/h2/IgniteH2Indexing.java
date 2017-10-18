@@ -539,7 +539,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
     }
 
     /** {@inheritDoc} */
-    @Override public void store(GridCacheContext cctx, GridQueryTypeDescriptor type, CacheDataRow row)
+    @Override public void store(GridCacheContext cctx, GridQueryTypeDescriptor type, CacheDataRow row, @Nullable CacheDataRow mvccNewRow)
         throws IgniteCheckedException {
         String cacheName = cctx.name();
 
@@ -548,7 +548,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
         if (tbl == null)
             return; // Type was rejected.
 
-        tbl.table().update(row, false);
+        tbl.table().update(row, mvccNewRow, false);
 
         if (tbl.luceneIndex() != null) {
             long expireTime = row.expireTime();
@@ -577,7 +577,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
         if (tbl == null)
             return;
 
-        if (tbl.table().update(row, true)) {
+        if (tbl.table().update(row, null, true)) {
             if (tbl.luceneIndex() != null)
                 tbl.luceneIndex().remove(row.key());
         }
@@ -673,7 +673,7 @@ public class IgniteH2Indexing implements GridQueryIndexing {
 
             SchemaIndexCacheVisitorClosure clo = new SchemaIndexCacheVisitorClosure() {
                 @Override public void apply(CacheDataRow row) throws IgniteCheckedException {
-                    GridH2Row h2Row = rowDesc.createRow(row);
+                    GridH2Row h2Row = rowDesc.createRow(row, null);
 
                     h2Idx.put(h2Row);
                 }

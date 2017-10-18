@@ -38,6 +38,7 @@ import org.h2.table.IndexColumn;
 import org.h2.value.Value;
 
 import static org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor.COUNTER_NA;
+import static org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor.assertMvccVersionValid;
 import static org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor.unmaskCoordinatorVersion;
 
 /**
@@ -79,7 +80,7 @@ public abstract class H2Tree extends BPlusTree<GridH2SearchRow, GridH2Row> {
      * @param initNew Initialize new index.
      * @throws IgniteCheckedException If failed.
      */
-    protected H2Tree(
+    H2Tree(
         String name,
         ReuseList reuseList,
         int grpId,
@@ -240,6 +241,8 @@ public abstract class H2Tree extends BPlusTree<GridH2SearchRow, GridH2Row> {
      * @return Compare result.
      */
     private int compareRows(GridH2Row r1, GridH2SearchRow r2) {
+        assert !mvccEnabled || r2.indexSearchRow() || assertMvccVersionValid(r2.mvccCoordinatorVersion(), r2.mvccCounter()) : r2;
+
         if (r1 == r2)
             return 0;
 
@@ -251,7 +254,7 @@ public abstract class H2Tree extends BPlusTree<GridH2SearchRow, GridH2Row> {
 
             if (v1 == null || v2 == null) {
                 // Can't compare further.
-                return 0;
+                return mvccCompare(r1, r2);
             }
 
             int c = compareValues(v1, v2);
@@ -260,7 +263,11 @@ public abstract class H2Tree extends BPlusTree<GridH2SearchRow, GridH2Row> {
                 return InlineIndexHelper.fixSort(c, cols[i].sortType);
         }
 
-        if (mvccEnabled) {
+        return mvccCompare(r1, r2);
+    }
+
+    private int mvccCompare(GridH2Row r1, GridH2SearchRow r2) {
+        if (mvccEnabled && !r2.indexSearchRow()) {
             long crdVer1 = r1.mvccCoordinatorVersion();
             long crdVer2 = r2.mvccCoordinatorVersion();
 

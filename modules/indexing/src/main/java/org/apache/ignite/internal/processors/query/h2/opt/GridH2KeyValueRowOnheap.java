@@ -18,6 +18,7 @@
 package org.apache.ignite.internal.processors.query.h2.opt;
 
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.internal.processors.cache.mvcc.CacheCoordinatorsProcessor;
 import org.apache.ignite.internal.processors.cache.persistence.CacheDataRow;
 import org.apache.ignite.internal.processors.query.GridQueryTypeDescriptor;
 import org.apache.ignite.internal.util.typedef.internal.SB;
@@ -56,17 +57,24 @@ public class GridH2KeyValueRowOnheap extends GridH2Row {
     /** */
     private Value ver;
 
+    /** */
+    private final CacheDataRow mvccNewRow;
+
     /**
      * Constructor.
      *
      * @param desc Row descriptor.
      * @param row Row.
+     * @param mvccNewRow New inserted mvcc row for the same key.
      * @param keyType Key type.
      * @param valType Value type.
      * @throws IgniteCheckedException If failed.
      */
-    public GridH2KeyValueRowOnheap(GridH2RowDescriptor desc, CacheDataRow row, int keyType, int valType)
-        throws IgniteCheckedException {
+    public GridH2KeyValueRowOnheap(GridH2RowDescriptor desc,
+        CacheDataRow row,
+        CacheDataRow mvccNewRow,
+        int keyType,
+        int valType) throws IgniteCheckedException {
         super(row);
 
         this.desc = desc;
@@ -78,6 +86,23 @@ public class GridH2KeyValueRowOnheap extends GridH2Row {
 
         if (row.version() != null)
             this.ver = desc.wrap(row.version(), Value.JAVA_OBJECT);
+
+        this.mvccNewRow = mvccNewRow;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long newMvccCoordinatorVersion() {
+        return mvccNewRow != null ? mvccNewRow.mvccCoordinatorVersion() : 0;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long newMvccCounter() {
+        return mvccNewRow != null ? mvccNewRow.mvccCounter() : CacheCoordinatorsProcessor.COUNTER_NA;
+    }
+
+    /** {@inheritDoc} */
+    @Override public boolean indexSearchRow() {
+        return false;
     }
 
     /** {@inheritDoc} */

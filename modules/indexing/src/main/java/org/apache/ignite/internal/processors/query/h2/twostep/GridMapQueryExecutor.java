@@ -62,6 +62,7 @@ import org.apache.ignite.internal.processors.query.GridQueryCancel;
 import org.apache.ignite.internal.processors.query.h2.H2Utils;
 import org.apache.ignite.internal.processors.query.h2.IgniteH2Indexing;
 import org.apache.ignite.internal.processors.query.h2.UpdateResult;
+import org.apache.ignite.internal.processors.query.h2.database.H2TreeMvccFilterClosure;
 import org.apache.ignite.internal.processors.query.h2.opt.DistributedJoinMode;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2QueryContext;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2RetryException;
@@ -658,8 +659,10 @@ public class GridMapQueryExecutor {
                 .distributedJoinMode(distributedJoinMode)
                 .pageSize(pageSize)
                 .topologyVersion(topVer)
-                .reservations(reserved)
-                .mvccVersion(mvccVer);
+                .reservations(reserved);
+
+            if (mvccVer != null)
+                qctx.mvccFilter(new H2TreeMvccFilterClosure(mvccVer));
 
             Connection conn = h2.connectionForSchema(schemaName);
 

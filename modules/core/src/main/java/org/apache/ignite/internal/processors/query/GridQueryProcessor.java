@@ -1730,14 +1730,25 @@ public class GridQueryProcessor extends GridProcessorAdapter {
                     prevRow.value(),
                     false);
 
-                if (prevValDesc != null && prevValDesc != desc)
+                if (prevValDesc != null && prevValDesc != desc) {
                     idx.remove(cctx, prevValDesc, prevRow);
+
+                    prevRow = null;
+                }
             }
 
             if (desc == null)
                 return;
 
-            idx.store(cctx, desc, newRow);
+            // TODO IGNITE-3478 index size (always inc on update?)
+            if (cctx.mvccEnabled()) {
+                idx.store(cctx, desc, newRow, null);
+
+                if (prevRow != null)
+                    idx.store(cctx, desc, prevRow, newRow);
+            }
+            else
+                idx.store(cctx, desc, newRow, null);
         }
         finally {
             busyLock.leaveBusy();

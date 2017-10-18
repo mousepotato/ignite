@@ -22,7 +22,6 @@ import org.apache.ignite.internal.pagemem.PageUtils;
 import org.apache.ignite.internal.processors.cache.persistence.tree.BPlusTree;
 import org.apache.ignite.internal.processors.cache.persistence.tree.io.BPlusIO;
 import org.apache.ignite.internal.processors.cache.persistence.tree.io.BPlusLeafIO;
-import org.apache.ignite.internal.processors.cache.persistence.tree.io.IOVersions;
 import org.apache.ignite.internal.processors.query.h2.database.H2Tree;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2Row;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2SearchRow;
@@ -63,6 +62,18 @@ public abstract class AbstractH2LeafIO extends BPlusLeafIO<GridH2SearchRow> impl
 
             PageUtils.putLong(pageAddr, off + 8, mvccCrdVer);
             PageUtils.putLong(pageAddr, off + 16, mvccCntr);
+
+            long newMvccCrdVer = row0.newMvccCoordinatorVersion();
+
+            PageUtils.putLong(pageAddr, off + 24, newMvccCrdVer);
+
+            if (newMvccCrdVer != 0) {
+                long newMvccCntr = row0.newMvccCounter();
+
+                assert assertMvccVersionValid(newMvccCrdVer, newMvccCntr);
+
+                PageUtils.putLong(pageAddr, off + 32, newMvccCntr);
+            }
         }
     }
 
@@ -82,6 +93,18 @@ public abstract class AbstractH2LeafIO extends BPlusLeafIO<GridH2SearchRow> impl
 
             PageUtils.putLong(dstPageAddr, off + 8, mvccCrdVer);
             PageUtils.putLong(dstPageAddr, off + 16, mvccCntr);
+
+            long newMvccCrdVer = getNewMvccCoordinatorVersion(srcPageAddr, srcIdx);
+
+            PageUtils.putLong(dstPageAddr, off + 24, newMvccCrdVer);
+
+            if (newMvccCrdVer != 0) {
+                long newMvccCntr = getNewMvccCounter(srcPageAddr, srcIdx);
+
+                assertMvccVersionValid(newMvccCrdVer, newMvccCntr);
+
+                PageUtils.putLong(dstPageAddr, off + 32, newMvccCntr);
+            }
         }
     }
 
@@ -117,5 +140,19 @@ public abstract class AbstractH2LeafIO extends BPlusLeafIO<GridH2SearchRow> impl
         assert storeMvccInfo();
 
         return PageUtils.getLong(pageAddr, offset(idx) + 16);
+    }
+
+    /** {@inheritDoc} */
+    @Override public long getNewMvccCoordinatorVersion(long pageAddr, int idx) {
+        assert storeMvccInfo();
+
+        return PageUtils.getLong(pageAddr, offset(idx) + 24);
+    }
+
+    /** {@inheritDoc} */
+    @Override public long getNewMvccCounter(long pageAddr, int idx) {
+        assert storeMvccInfo();
+
+        return PageUtils.getLong(pageAddr, offset(idx) + 32);
     }
 }

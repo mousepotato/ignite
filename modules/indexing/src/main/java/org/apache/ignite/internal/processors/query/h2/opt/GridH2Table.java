@@ -389,15 +389,16 @@ public class GridH2Table extends TableBase {
      * otherwise value and expiration time will be updated or new row will be added.
      *
      * @param row Row.
+     * @param mvccNewRow New inserted mvcc row for the same key.
      * @param rmv If {@code true} then remove, else update row.
      * @return {@code true} If operation succeeded.
      * @throws IgniteCheckedException If failed.
      */
-    public boolean update(CacheDataRow row, boolean rmv)
+    public boolean update(CacheDataRow row, @Nullable CacheDataRow mvccNewRow, boolean rmv)
         throws IgniteCheckedException {
         assert desc != null;
 
-        GridH2Row h2Row = desc.createRow(row);
+        GridH2Row h2Row = desc.createRow(row, mvccNewRow);
 
         if (rmv)
             return doUpdate(h2Row, true);
@@ -464,7 +465,7 @@ public class GridH2Table extends TableBase {
                 if (cctx.mvccEnabled()) {
                     boolean replaced = pk.putx(row);
 
-                    assert !replaced;
+                    assert replaced == (row.newMvccCoordinatorVersion() != 0);
 
                     old = null;
                 }
@@ -540,17 +541,24 @@ public class GridH2Table extends TableBase {
     private void addToIndex(GridH2IndexBase idx, Index pk, GridH2Row row, GridH2Row old, boolean tmp) {
         assert !idx.getIndexType().isUnique() : "Unique indexes are not supported: " + idx;
 
-        GridH2Row old2 = idx.put(row);
+        if (idx.ctx.mvccEnabled()) {
+            boolean replaced = idx.putx(row);
 
-        if (old2 != null) { // Row was replaced in index.
-            if (!tmp) {
-                if (!eq(pk, old2, old))
-                    throw new IllegalStateException("Row conflict should never happen, unique indexes are " +
-                        "not supported [idx=" + idx + ", old=" + old + ", old2=" + old2 + ']');
-            }
+            assert replaced == (row.newMvccCoordinatorVersion() != 0);
         }
-        else if (old != null) // Row was not replaced, need to remove manually.
-            idx.removex(old);
+        else {
+            GridH2Row old2 = idx.put(row);
+
+            if (old2 != null) { // Row was replaced in index.
+                if (!tmp) {
+                    if (!eq(pk, old2, old))
+                        throw new IllegalStateException("Row conflict should never happen, unique indexes are " +
+                                "not supported [idx=" + idx + ", old=" + old + ", old2=" + old2 + ']');
+                }
+            }
+            else if (old != null) // Row was not replaced, need to remove manually.
+                idx.removex(old);
+        }
     }
 
     /**

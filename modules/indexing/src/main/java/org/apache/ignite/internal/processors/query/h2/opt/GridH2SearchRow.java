@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.query.h2.opt;
 
+import org.apache.ignite.internal.processors.query.h2.database.H2Tree;
 import org.h2.result.Row;
 
 /**
@@ -32,4 +33,9 @@ public interface GridH2SearchRow extends Row {
      * @return Mvcc counter.
      */
     public long mvccCounter();
+
+    /**
+     * @return {@code True} for rows used for index search (as opposed to rows stored in {@link H2Tree}.
+     */
+    public boolean indexSearchRow();
 }

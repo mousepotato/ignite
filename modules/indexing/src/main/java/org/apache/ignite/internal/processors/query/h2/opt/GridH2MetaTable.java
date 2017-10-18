@@ -286,13 +286,8 @@ public class GridH2MetaTable extends TableBase {
         }
 
         /** {@inheritDoc} */
-        @Override public long mvccCoordinatorVersion() {
-            return 0; // TODO IGNITE-3478
-        }
-
-        /** {@inheritDoc} */
-        @Override public long mvccCounter() {
-            return 0; // TODO IGNITE-3478
+        @Override public boolean indexSearchRow() {
+            return false; // TODO IGNITE-3478, check meta table with mvcc.
         }
     }
 

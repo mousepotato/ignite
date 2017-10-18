@@ -29,6 +29,7 @@ import org.apache.ignite.internal.processors.cache.persistence.tree.BPlusTree;
 import org.apache.ignite.internal.processors.cache.persistence.tree.io.PageIO;
 import org.apache.ignite.internal.processors.query.h2.H2Cursor;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2IndexBase;
+import org.apache.ignite.internal.processors.query.h2.opt.GridH2QueryContext;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2Row;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2SearchRow;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2Table;
@@ -170,20 +171,30 @@ public class H2TreeIndex extends GridH2IndexBase {
             assert lower == null || lower instanceof GridH2SearchRow : lower;
             assert upper == null || upper instanceof GridH2SearchRow : upper;
 
-            IndexingQueryFilter f = threadLocalFilter();
             IndexingQueryCacheFilter p = null;
+            H2TreeMvccFilterClosure mvccFilter = null;
 
-            if (f != null) {
-                String cacheName = getTable().cacheName();
+            GridH2QueryContext qctx = GridH2QueryContext.get();
 
-                p = f.forCache(cacheName);
+            if (qctx != null) {
+                IndexingQueryFilter f = threadLocalFilter();
+
+                if (f != null) {
+                    String cacheName = getTable().cacheName();
+
+                    p = f.forCache(cacheName);
+                }
+
+                mvccFilter = qctx.mvccFilter();
             }
 
             int seg = threadLocalSegment();
 
             H2Tree tree = treeForRead(seg);
 
-            return new H2Cursor(tree.find((GridH2SearchRow)lower, (GridH2SearchRow)upper), p);
+            assert !cctx.mvccEnabled() || mvccFilter != null;
+
+            return new H2Cursor(tree.find((GridH2SearchRow)lower, (GridH2SearchRow)upper, mvccFilter, null), p);
         }
         catch (IgniteCheckedException e) {
             throw DbException.convert(e);
