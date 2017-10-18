@@ -4800,8 +4800,10 @@ public abstract class BPlusTree<L, T extends L> extends DataStructure implements
             int resCnt = 0;
 
             for (int i = 0; i < cnt; i++) {
-                if (c == null || c.apply(BPlusTree.this, io, pageAddr, startIdx + i)) {
-                    T r = getRow(io, pageAddr, startIdx + i, x);
+                int itemIdx = startIdx + i;
+
+                if (c == null || c.apply(BPlusTree.this, io, pageAddr, itemIdx)) {
+                    T r = getRow(io, pageAddr, itemIdx, x);
 
                     rows = GridArrays.set(rows, resCnt++, r);
                 }
@@ -4809,7 +4811,7 @@ public abstract class BPlusTree<L, T extends L> extends DataStructure implements
 
             GridArrays.clearTail(rows, resCnt);
 
-            return true;
+            return resCnt > 0;
         }
 
         /** {@inheritDoc} */

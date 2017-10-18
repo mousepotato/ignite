@@ -2324,7 +2324,7 @@ public class GridQueryProcessor extends GridProcessorAdapter {
     public void remove(GridCacheContext cctx, CacheDataRow val, @Nullable MvccCoordinatorVersion newVer)
         throws IgniteCheckedException {
         assert val != null;
-        assert !cctx.mvccEnabled() || newVer == null;
+        assert cctx.mvccEnabled() || newVer == null;
 
         if (log.isDebugEnabled())
             log.debug("Remove [cacheName=" + cctx.name() + ", key=" + val.key()+ ", val=" + val.value() + "]");

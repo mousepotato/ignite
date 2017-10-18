@@ -378,7 +378,7 @@ public abstract class CacheMvccAbstractTest extends GridCommonAbstractTest {
 
                                         for (List<?> row : cache.cache.query(qry)) {
                                             Integer id = (Integer)row.get(0);
-                                            Integer val = (Integer)row.get(0);
+                                            Integer val = (Integer)row.get(1);
 
                                             MvccTestAccount old = accounts.put(id, new MvccTestAccount(val, 1));
 
@@ -713,7 +713,7 @@ public abstract class CacheMvccAbstractTest extends GridCommonAbstractTest {
      * @param node Node.
      * @throws Exception If failed.
      */
-    final void checkActiveQueriesCleanup(Ignite node) throws Exception {
+    protected final void checkActiveQueriesCleanup(Ignite node) throws Exception {
         final CacheCoordinatorsProcessor crd = ((IgniteKernal)node).context().cache().context().coordinators();
 
         assertTrue("Active queries not cleared: " + node.name(), GridTestUtils.waitForCondition(

@@ -566,7 +566,7 @@ public class GridReduceQueryExecutor {
 
             List<Integer> cacheIds = qry.cacheIds();
 
-            MvccCoordinatorVersion mvccVer = null;
+            MvccQueryTracker mvccTracker = null;
 
             // TODO IGNITE-3478.
             if (qry.mvccEnabled()) {
@@ -574,7 +574,7 @@ public class GridReduceQueryExecutor {
 
                 final GridFutureAdapter<Void> fut = new GridFutureAdapter<>();
 
-                MvccQueryTracker mvccTracker = new MvccQueryTracker(cacheContext(cacheIds.get(0)), true,
+                mvccTracker = new MvccQueryTracker(cacheContext(cacheIds.get(0)), true,
                     new IgniteBiInClosure<AffinityTopologyVersion, IgniteCheckedException>() {
                     @Override public void apply(AffinityTopologyVersion topVer, IgniteCheckedException e) {
                         fut.onDone(null, e);
@@ -585,8 +585,6 @@ public class GridReduceQueryExecutor {
 
                 try {
                     fut.get();
-
-                    mvccVer = mvccTracker.mvccVersion();
                 }
                 catch (IgniteCheckedException e) {
                     throw new CacheException(e);
@@ -759,8 +757,10 @@ public class GridReduceQueryExecutor {
                     .parameters(params)
                     .flags(flags)
                     .timeout(timeoutMillis)
-                    .schemaName(schemaName)
-                    .mvccVersion(mvccVer);
+                    .schemaName(schemaName);
+
+                if (mvccTracker != null)
+                    req.mvccVersion(mvccTracker.mvccVersion());
 
                 if (send(nodes, req, parts == null ? null : new ExplicitPartitionsSpecializer(qryMap), false)) {
                     awaitAllReplies(r, nodes, cancel);
@@ -795,7 +795,12 @@ public class GridReduceQueryExecutor {
 
                 if (!retry) {
                     if (skipMergeTbl) {
-                        resIter = new GridMergeIndexIterator(this, finalNodes, r, qryReqId, qry.distributedJoins());
+                        resIter = new GridMergeIndexIterator(this,
+                            finalNodes,
+                            r,
+                            qryReqId,
+                            qry.distributedJoins(),
+                            mvccTracker);
 
                         release = false;
                     }
@@ -865,7 +870,7 @@ public class GridReduceQueryExecutor {
             }
             finally {
                 if (release) {
-                    releaseRemoteResources(finalNodes, r, qryReqId, qry.distributedJoins());
+                    releaseRemoteResources(finalNodes, r, qryReqId, qry.distributedJoins(), mvccTracker);
 
                     if (!skipMergeTbl) {
                         for (int i = 0, mapQrys = qry.mapQueries().size(); i < mapQrys; i++)
@@ -1060,7 +1065,10 @@ public class GridReduceQueryExecutor {
      * @param distributedJoins Distributed join flag.
      */
     public void releaseRemoteResources(Collection<ClusterNode> nodes, ReduceQueryRun r, long qryReqId,
-        boolean distributedJoins) {
+        boolean distributedJoins, MvccQueryTracker mvccTracker) {
+        if (mvccTracker != null)
+            mvccTracker.onQueryDone();
+
         // For distributedJoins need always send cancel request to cleanup resources.
         if (distributedJoins)
             send(nodes, new GridQueryCancelRequest(qryReqId), null, false);
