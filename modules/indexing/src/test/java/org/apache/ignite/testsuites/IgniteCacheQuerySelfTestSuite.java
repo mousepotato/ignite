@@ -141,6 +141,8 @@ import org.apache.ignite.internal.processors.query.IgniteCachelessQueriesSelfTes
 import org.apache.ignite.internal.processors.database.baseline.IgniteStableBaselineBinObjFieldsQuerySelfTest;
 import org.apache.ignite.internal.processors.query.IgniteSqlDefaultValueTest;
 import org.apache.ignite.internal.processors.query.IgniteSqlDistributedJoinSelfTest;
+import org.apache.ignite.internal.processors.query.IgniteSqlGroupConcatCollocatedTest;
+import org.apache.ignite.internal.processors.query.IgniteSqlGroupConcatNotCollocatedTest;
 import org.apache.ignite.internal.processors.query.IgniteSqlSkipReducerOnUpdateDmlFlagSelfTest;
 import org.apache.ignite.internal.processors.query.IgniteSqlParameterizedQueryTest;
 import org.apache.ignite.internal.processors.query.h2.IgniteSqlBigIntegerKeyTest;
@@ -389,6 +391,9 @@ public class IgniteCacheQuerySelfTestSuite extends TestSuite {
         // H2 Rows on-heap cache
         suite.addTestSuite(H2RowCacheSelfTest.class);
         suite.addTestSuite(H2RowCachePageEvictionTest.class);
+
+        suite.addTestSuite(IgniteSqlGroupConcatCollocatedTest.class);
+        suite.addTestSuite(IgniteSqlGroupConcatNotCollocatedTest.class);
 
         return suite;
     }
